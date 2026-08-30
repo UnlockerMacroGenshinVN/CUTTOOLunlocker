@@ -1,0 +1,66 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.3.11312.210
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Launcher", "Launcher\Launcher.vcxproj", "{5249F40B-1E28-4E4B-AA01-32CB9AF20026}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CUTTOOL.UnlockerIsland", "CUTTOOL.UnlockerIsland\CUTTOOL.UnlockerIsland.vcxproj", "{A307ACE7-C608-43D7-B072-9A4C42723655}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Launcher_2", "Launcher_2\Launcher_2.vcxproj", "{1040ED66-3F04-4934-8BD1-DCBC5FD8FFB3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|ARM64 = Debug|ARM64
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|ARM64 = Release|ARM64
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5249F40B-1E28-4E4B-AA01-32CB9AF20026}.Debug|ARM64.ActiveCfg = Release|x64
+		{5249F40B-1E28-4E4B-AA01-32CB9AF20026}.Debug|ARM64.Build.0 = Release|x64
+		{5249F40B-1E28-4E4B-AA01-32CB9AF20026}.Debug|x64.ActiveCfg = Release|x64
+		{5249F40B-1E28-4E4B-AA01-32CB9AF20026}.Debug|x64.Build.0 = Release|x64
+		{5249F40B-1E28-4E4B-AA01-32CB9AF20026}.Debug|x86.ActiveCfg = Release|Win32
+		{5249F40B-1E28-4E4B-AA01-32CB9AF20026}.Debug|x86.Build.0 = Release|Win32
+		{5249F40B-1E28-4E4B-AA01-32CB9AF20026}.Release|ARM64.ActiveCfg = Release|x64
+		{5249F40B-1E28-4E4B-AA01-32CB9AF20026}.Release|ARM64.Build.0 = Release|x64
+		{5249F40B-1E28-4E4B-AA01-32CB9AF20026}.Release|x64.ActiveCfg = Release|x64
+		{5249F40B-1E28-4E4B-AA01-32CB9AF20026}.Release|x64.Build.0 = Release|x64
+		{5249F40B-1E28-4E4B-AA01-32CB9AF20026}.Release|x64.Deploy.0 = Release|x64
+		{5249F40B-1E28-4E4B-AA01-32CB9AF20026}.Release|x86.ActiveCfg = Release|Win32
+		{5249F40B-1E28-4E4B-AA01-32CB9AF20026}.Release|x86.Build.0 = Release|Win32
+		{A307ACE7-C608-43D7-B072-9A4C42723655}.Debug|ARM64.ActiveCfg = Debug|x64
+		{A307ACE7-C608-43D7-B072-9A4C42723655}.Debug|ARM64.Build.0 = Debug|x64
+		{A307ACE7-C608-43D7-B072-9A4C42723655}.Debug|x64.ActiveCfg = Debug|x64
+		{A307ACE7-C608-43D7-B072-9A4C42723655}.Debug|x64.Build.0 = Debug|x64
+		{A307ACE7-C608-43D7-B072-9A4C42723655}.Debug|x86.ActiveCfg = Debug|Win32
+		{A307ACE7-C608-43D7-B072-9A4C42723655}.Debug|x86.Build.0 = Debug|Win32
+		{A307ACE7-C608-43D7-B072-9A4C42723655}.Release|ARM64.ActiveCfg = Release|x64
+		{A307ACE7-C608-43D7-B072-9A4C42723655}.Release|ARM64.Build.0 = Release|x64
+		{A307ACE7-C608-43D7-B072-9A4C42723655}.Release|x64.ActiveCfg = Release|x64
+		{A307ACE7-C608-43D7-B072-9A4C42723655}.Release|x64.Build.0 = Release|x64
+		{A307ACE7-C608-43D7-B072-9A4C42723655}.Release|x86.ActiveCfg = Release|Win32
+		{A307ACE7-C608-43D7-B072-9A4C42723655}.Release|x86.Build.0 = Release|Win32
+		{1040ED66-3F04-4934-8BD1-DCBC5FD8FFB3}.Debug|ARM64.ActiveCfg = Debug|Win32
+		{1040ED66-3F04-4934-8BD1-DCBC5FD8FFB3}.Debug|ARM64.Build.0 = Debug|Win32
+		{1040ED66-3F04-4934-8BD1-DCBC5FD8FFB3}.Debug|x64.ActiveCfg = Debug|x64
+		{1040ED66-3F04-4934-8BD1-DCBC5FD8FFB3}.Debug|x64.Build.0 = Debug|x64
+		{1040ED66-3F04-4934-8BD1-DCBC5FD8FFB3}.Debug|x86.ActiveCfg = Debug|Win32
+		{1040ED66-3F04-4934-8BD1-DCBC5FD8FFB3}.Debug|x86.Build.0 = Debug|Win32
+		{1040ED66-3F04-4934-8BD1-DCBC5FD8FFB3}.Release|ARM64.ActiveCfg = Release|Win32
+		{1040ED66-3F04-4934-8BD1-DCBC5FD8FFB3}.Release|ARM64.Build.0 = Release|Win32
+		{1040ED66-3F04-4934-8BD1-DCBC5FD8FFB3}.Release|x64.ActiveCfg = Release|x64
+		{1040ED66-3F04-4934-8BD1-DCBC5FD8FFB3}.Release|x64.Build.0 = Release|x64
+		{1040ED66-3F04-4934-8BD1-DCBC5FD8FFB3}.Release|x86.ActiveCfg = Release|Win32
+		{1040ED66-3F04-4934-8BD1-DCBC5FD8FFB3}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A2EDC554-874A-4AE1-BD35-DF8B1AB3084E}
+	EndGlobalSection
+EndGlobal

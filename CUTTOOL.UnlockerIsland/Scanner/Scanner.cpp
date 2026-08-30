@@ -1,0 +1,176 @@
+﻿/*
+Copyright (c) CUTTOOL Dev Team. All rights reserved.
+Licensed under the AGPL-3.0 License.
+*/
+#include "Scanner.h"
+#include <Windows.h> 
+#include <Psapi.h>
+#include <algorithm>
+#include <cstdint>
+#include <sstream>
+#include <vector>
+#include <iostream>
+
+#include "../Config/Config.h"
+
+namespace Scanner {
+
+    std::vector<int> ParsePattern(const std::string& signature) {
+        std::vector<int> pattern;
+        std::stringstream ss(signature);
+        std::string word;
+        while (ss >> word) {
+            if (word == "?" || word == "??") pattern.push_back(-1);
+            else {
+                try { pattern.push_back(std::stoi(word, nullptr, 16)); }
+                catch (...) { pattern.push_back(-1); }
+            }
+        }
+        return pattern;
+    }
+
+    void* ScanMainMod(const std::string& signature) {
+        HMODULE hModule = nullptr;
+        
+        if (!hModule) {
+            hModule = GetModuleHandleA(nullptr);
+        }
+
+        if (!hModule) return nullptr;
+
+        MODULEINFO modInfo = { 0 };
+        if (!GetModuleInformation(GetCurrentProcess(), hModule, &modInfo, sizeof(MODULEINFO))) {
+            return nullptr;
+        }
+
+        auto pattern = ParsePattern(signature);
+        if (pattern.empty()) return nullptr;
+
+        uintptr_t startAddr = (uintptr_t)modInfo.lpBaseOfDll;
+        uintptr_t endAddr = startAddr + modInfo.SizeOfImage;
+        uintptr_t current = startAddr;
+
+        const size_t pSize = pattern.size();
+
+        while (current < endAddr) {
+            MEMORY_BASIC_INFORMATION mbi;
+            if (!VirtualQuery((LPCVOID)current, &mbi, sizeof(mbi))) {
+                break;
+            }
+            
+            bool isGood = (mbi.State == MEM_COMMIT) &&
+                          ((mbi.Protect & PAGE_GUARD) == 0) &&
+                          ((mbi.Protect & PAGE_EXECUTE_READ) ||
+                           (mbi.Protect & PAGE_EXECUTE_READWRITE) ||
+                           (mbi.Protect & PAGE_READWRITE) ||
+                           (mbi.Protect & PAGE_READONLY));
+
+            if (isGood) {
+                size_t regionSize = mbi.RegionSize;
+                
+                if ((uintptr_t)mbi.BaseAddress + regionSize > endAddr) {
+                    regionSize = endAddr - (uintptr_t)mbi.BaseAddress;
+                }
+
+                if (regionSize >= pSize) {
+                    const uint8_t* pStart = (const uint8_t*)mbi.BaseAddress;
+                    
+                    for (size_t i = 0; i <= regionSize - pSize; ++i) {
+                        bool found = true;
+                        for (size_t j = 0; j < pSize; ++j) {
+                            if (pattern[j] != -1 && pattern[j] != pStart[i + j]) {
+                                found = false;
+                                break;
+                            }
+                        }
+                        if (found) {
+                            return (void*)(pStart + i);
+                        }
+                    }
+                }
+            }
+            
+            uintptr_t nextAddr = (uintptr_t)mbi.BaseAddress + mbi.RegionSize;
+            
+            if (nextAddr <= current) {
+                break;
+            }
+            current = nextAddr;
+        }
+
+        return nullptr;
+    }
+
+    void* ScanRange(void* start, size_t size, const std::string& signature) {
+        if (!start || size == 0) return nullptr;
+
+        auto pattern = ParsePattern(signature);
+        if (pattern.empty()) return nullptr;
+
+        uintptr_t rangeStart = (uintptr_t)start;
+        uintptr_t rangeEnd = rangeStart + size;
+        if (rangeEnd < rangeStart) {
+            rangeEnd = UINTPTR_MAX;
+        }
+
+        const size_t pSize = pattern.size();
+        uintptr_t current = rangeStart;
+
+        while (current < rangeEnd) {
+            MEMORY_BASIC_INFORMATION mbi;
+            if (!VirtualQuery((LPCVOID)current, &mbi, sizeof(mbi))) {
+                current += 0x1000;
+                continue;
+            }
+
+            bool isGood = (mbi.State == MEM_COMMIT) &&
+                          ((mbi.Protect & PAGE_GUARD) == 0) &&
+                          ((mbi.Protect & PAGE_EXECUTE_READ) ||
+                           (mbi.Protect & PAGE_EXECUTE_READWRITE) ||
+                           (mbi.Protect & PAGE_READWRITE) ||
+                           (mbi.Protect & PAGE_READONLY));
+
+            uintptr_t regionStart = (std::max)((uintptr_t)mbi.BaseAddress, rangeStart);
+            uintptr_t regionEnd = (std::min)((uintptr_t)mbi.BaseAddress + mbi.RegionSize, rangeEnd);
+
+            if (isGood && regionEnd > regionStart && regionEnd - regionStart >= pSize) {
+                const uint8_t* pStart = (const uint8_t*)regionStart;
+                const size_t regionSize = regionEnd - regionStart;
+
+                for (size_t i = 0; i <= regionSize - pSize; ++i) {
+                    bool found = true;
+                    for (size_t j = 0; j < pSize; ++j) {
+                        if (pattern[j] != -1 && pattern[j] != pStart[i + j]) {
+                            found = false;
+                            break;
+                        }
+                    }
+                    if (found) {
+                        return (void*)(pStart + i);
+                    }
+                }
+            }
+
+            uintptr_t nextAddr = (uintptr_t)mbi.BaseAddress + mbi.RegionSize;
+            if (nextAddr <= current) {
+                break;
+            }
+            current = nextAddr;
+        }
+
+        return nullptr;
+    }
+
+    void* ResolveRelative(void* instruction, int offset, int instrSize) {
+        if (!instruction) return nullptr;
+        __try {
+            uintptr_t instrAddr = (uintptr_t)instruction;
+            int32_t relative = *(int32_t*)(instrAddr + offset);
+            uintptr_t target = instrAddr + instrSize + relative;
+            return (void*)target;
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER) {
+            return nullptr;
+        }
+    }
+}
