@@ -1,0 +1,2 @@
+# CUTTOOLunlocker
+Unlocker Genshin Launcher
