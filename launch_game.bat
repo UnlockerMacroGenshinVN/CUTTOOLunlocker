@@ -47,6 +47,9 @@ if not exist "%PLUGINS_DIR%\config.ini" (
         echo [DebugConsole]
         echo Value=0
         echo.
+        echo [ShowFps]
+        echo Value=1
+        echo.
         echo [FpsUnlock]
         echo Value=0
         echo.
@@ -93,14 +96,18 @@ if not exist "%PLUGINS_DIR%\config.ini" (
     echo [INFO] Da tao Plugins\UnlockerIsland\config.ini
 )
 
-:: Copy DLL vào thư mục plugin nếu chưa có
-if not exist "%PLUGINS_DIR%\CUTTOOL.UnlockerIsland.dll" (
-    copy /Y "%~dp0CUTTOOL.UnlockerIsland.dll" "%PLUGINS_DIR%\" >nul 2>&1
-    if exist "%PLUGINS_DIR%\CUTTOOL.UnlockerIsland.dll" (
-        echo [INFO] Da copy DLL vao thu muc plugin.
-    ) else (
-        echo [WARN] Khong the copy DLL. Hay copy thu cong:
-        echo        CUTTOOL.UnlockerIsland.dll ^> Plugins\UnlockerIsland\
+:: Dong bo Launcher va DLL moi nhat tu x64\Release neu co
+if exist "%~dp0x64\Release\Launcher_2.exe" (
+    copy /Y "%~dp0x64\Release\Launcher_2.exe" "%~dp0Launcher_2.exe" >nul 2>&1
+    copy /Y "%~dp0x64\Release\Launcher.dll" "%~dp0Launcher.dll" >nul 2>&1
+)
+if exist "%~dp0x64\Release\CUTTOOL.UnlockerIsland.dll" (
+    copy /Y "%~dp0x64\Release\CUTTOOL.UnlockerIsland.dll" "%PLUGINS_DIR%\" >nul 2>&1
+    copy /Y "%~dp0x64\Release\CUTTOOL.UnlockerIsland.dll" "%~dp0" >nul 2>&1
+    echo [INFO] Da dong bo DLL moi nhat vao thu muc plugin.
+) else if not exist "%PLUGINS_DIR%\CUTTOOL.UnlockerIsland.dll" (
+    if exist "%~dp0CUTTOOL.UnlockerIsland.dll" (
+        copy /Y "%~dp0CUTTOOL.UnlockerIsland.dll" "%PLUGINS_DIR%\" >nul 2>&1
     )
 )
 

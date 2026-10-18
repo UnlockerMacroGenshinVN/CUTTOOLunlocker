@@ -13,6 +13,7 @@ Licensed under the AGPL-3.0 License.
 #include "../Config/Config.h"
 #include "Hooks.h"
 #include "../Visual/Gui.h"
+#include "../HideUI/HideUI.h"
 
 static std::string g_LogPath;
 
@@ -71,14 +72,14 @@ void MainWorker(HMODULE hMod) {
         OpenConsole("Unlocker System (Lite)");
     }
 
-    std::cout << "[*] Initializing DX11 Hook for FPS..." << '\n';
-    Gui::InitDX11Hook();
-
     std::cout << "[*] Initializing Hooks..." << '\n';
     if (!Hooks::Init()) {
         std::cout << "[!] Hooks::Init Failed!" << '\n';
         return;
     }
+
+    std::cout << "[*] Initializing DX11 Hook for FPS..." << '\n';
+    Gui::InitDX11Hook();
     
     std::cout << "[*] Waiting for GameUpdate..." << '\n';
     while (!Hooks::IsGameUpdateInit()) {
@@ -120,6 +121,7 @@ void MainWorker(HMODULE hMod) {
         // Manual Reload Key (default VK_HOME = 36)
         if (isFocused && cfg.toggle_key != 0 && (GetAsyncKeyState(cfg.toggle_key) & 0x8000)) {
             Config::Load();
+            ApplyProfilePrivacyState();
             std::cout << "[*] Config reloaded manually." << '\n';
             Sleep(400);
         }
@@ -130,6 +132,7 @@ void MainWorker(HMODULE hMod) {
             FILETIME currentWriteTime = GetFileLastWriteTime(configPath);
             if (CompareFileTime(&lastConfigWriteTime, &currentWriteTime) != 0) {
                 Config::Load();
+                ApplyProfilePrivacyState();
                 if (Config::Get().debug_console) {
                     std::cout << "[*] Automatic config reload detected." << '\n';
                 }

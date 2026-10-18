@@ -158,6 +158,18 @@ void RecursiveScanAndInject(HANDLE hProcess, HANDLE hThread, const std::wstring&
             if (_wcsicmp(findData.cFileName, L"config.ini") == 0) {
                 std::vector<std::wstring> targetDllNames = ExtractDllsFromIni(fullPath);
                 
+                // Fallback: if config.ini has no File= entry, scan for any .dll in this directory
+                if (targetDllNames.empty()) {
+                    WIN32_FIND_DATAW dllFind;
+                    HANDLE hDllFind = FindFirstFileW((directory + L"\\*.dll").c_str(), &dllFind);
+                    if (hDllFind != INVALID_HANDLE_VALUE) {
+                        do {
+                            targetDllNames.push_back(dllFind.cFileName);
+                        } while (FindNextFileW(hDllFind, &dllFind) != 0);
+                        FindClose(hDllFind);
+                    }
+                }
+                
                 for (const std::wstring& targetDllName : targetDllNames) {
                     if (!targetDllName.empty()) {
                         std::wstring targetDllPath = directory + L"\\" + targetDllName;

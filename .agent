@@ -1,0 +1,144 @@
+# HƯỚNG DẪN CÔNG ĐOẠN NÂNG CẤP VÀ SETUP NHANH (QUICK UPGRADE GUIDE FOR AGENT)
+
+Tài liệu này lưu trữ quy trình chuẩn để AI Agent hoặc lập trình viên có thể cập nhật, đồng bộ nhanh mã nguồn dự án **CUTTOOL.UnlockerIsland** mỗi khi game Genshin Impact ra phiên bản mới (7.x, 8.x,...).
+
+---
+
+## 1. NGUỒN GỐC & KIẾN TRÚC TINH GIẢN
+
+Dự án **CUTTOOLunlocker** là phiên bản **thu gọn tối ưu** được tổng hợp từ 2 repository nguồn:
+
+1. **`D:\GSVNUNLOCKER\FufuLauncher.UnlockerIsland`** (Upstream chính):
+   - Cung cấp: Toàn bộ pattern signatures, offsets cập nhật theo từng phiên bản game cho cả server Quốc Tế (OS) và server Trung Quốc (CN), cơ chế hook MinHook, module HideUI mới.
+   - Lưu ý: FufuLauncher chứa rất nhiều tính năng phụ không cần thiết cho CUTTOOL (Auto, FreeCam, UnderwaterMask, RainbowDamage, PaimonFollow,...).
+
+2. **`D:\Genshin.Fps.UnlockerIsland_ref`** (Bản tham chiếu UI & tối giản):
+   - Cung cấp: Kiến trúc hiển thị FPS trên màn hình thông qua ImGui Hook DirectX 11 SwapChain Present (`Gui.cpp`, `Gui.h`, thư mục `ImGui/`), cùng với phong cách hook tối giản không phụ thuộc il2cpp metadata nặng nề.
+
+---
+
+## 2. DANH SÁCH 11 TÍNH NĂNG CỐT LÕI (BẮT BUỘC BẢO TOÀN)
+
+Khi nâng cấp bất kỳ phiên bản nào, **chỉ giữ lại và cập nhật 11 tính năng sau**, tuyệt đối không mang các module rác vào:
+
+| STT | Tính năng | Khóa trong `config.ini` | File mã nguồn phụ trách | Cơ chế hoạt động |
+|---|---|---|---|---|
+| 1 | **Tắt VSync** | `[VSync] Value=0` | `Core/Hooks.cpp` (`hk_ChangeFov`) | Gọi `SetSyncCount(false)` |
+| 2 | **Unlock FPS** | `[FpsUnlock] Value=1` | `Core/Hooks.cpp` (`hk_ChangeFov`) | Gọi `SetFrameCount(selected_fps)` |
+| 3 | **FPS Target** | `[TargetFps] Value=120` | `Config/Config.cpp` | Truyền vào `SetFrameCount` |
+| 4 | **Unlock FOV** | `[FovUnlock] Value=1` | `Core/Hooks.cpp` (`hk_ChangeFov`) | Hook `ChangeFOV`, ghi đè tham số fov |
+| 5 | **FOV Target** | `[FovValue] Value=55.0` | `Config/Config.cpp` | Giá trị góc nhìn FOV mục tiêu |
+| 6 | **Đổi nhân vật nhanh** | `[RemoveTeamAnim] Value=1` | `Visual/Visual.cpp` (`hk_OpenTeam`) | Bỏ qua chờ hoạt ảnh, gọi thẳng `OpenTeamPage(false)` khi `CheckCanEnter()` hợp lệ |
+| 7 | **Bỏ zoom nộ / cam tự động** | `[DisableCameraMove] Value=1` | `Visual/Visual.cpp` (`hk_EventCamera`) | Hook `EventCamera`, trả về `true` chặn chuyển động cinematic camera khi dùng Burst/kỹ năng |
+| 8 | **Tắt sương mù** | `[DisableFog] Value=1` | `Visual/Visual.cpp` (`hk_DisplayFog`) | Hook `DisplayFog`, xóa byte đầu của buffer sương mù |
+| 9 | **Hiển thị FPS** | `[ShowFps] Value=1` | `Visual/Gui.cpp` | ImGui DX11 Present Hook render text FPS góc màn hình |
+| 10 | **Ẩn UID** | `[HideUID] Value=1` | `HideUI/HideUI.cpp`, `Core/Hooks.cpp` | Hook `SetupPlayerProfilePage` + cache pointer UID + quét ẩn watermark góc màn hình |
+| 11 | **Toggle Network & Hotkey** | `[EnableNetworkToggle] Value=1`<br>`[NetworkToggleKey] Value=122` | `Network/Network.cpp`, `Core/dllmain.cpp` | Hook 6 API Winsock (`send`, `sendto`, `WSASend`, `WSASendTo`, `recv`, `recvfrom`), toggle phím F11 có âm thanh beep báo hiệu |
+
+---
+
+## 3. CÁC MODULE ĐÃ LOẠI BỎ (KHÔNG ĐƯỢC MANG VÀO)
+
+Từ repo FufuLauncher, **KHÔNG** sao chép các module sau sang CUTTOOL:
+- `Automation/` (Auto cook, auto dialog, auto clock)
+- `Camera/`, `CameraOffset/` (trừ `EventCamera`)
+- `FreeCamera/` (Flycam)
+- `il2cpp/` (Array, List, Object metadata reflection)
+- `PaimonFollow/`
+- `RainbowDamage/`
+- `UnderwaterMask/`
+
+---
+
+## 4. QUY TRÌNH NÂNG CẤP TỪNG BƯỚC CHO PHIÊN BẢN MỚI
+
+Khi game cập nhật patch mới (ví dụ 7.1, 7.2,...):
+
+### Bước 1: Kiểm tra cập nhật từ repo upstream FufuLauncher
+Chạy lệnh kiểm tra các commit mới nhất và file bị thay đổi:
+```powershell
+git -C "D:\GSVNUNLOCKER\FufuLauncher.UnlockerIsland" log -n 5 --stat
+git -C "D:\GSVNUNLOCKER\FufuLauncher.UnlockerIsland" diff HEAD~1..HEAD -- FufuLauncher.UnlockerIsland/Patterns/Patterns.h
+```
+
+### Bước 2: Cập nhật Patterns & Offsets (`CUTTOOL.UnlockerIsland/Patterns/Patterns.h`)
+Kiểm tra và cập nhật các mục sau:
+1. **Namespace CN (Server Trung Quốc)**:
+   - `CN::SetActiveOffset`: Lấy offset mới từ FufuLauncher.
+   - `CN::EventCameraOffset`: Nếu Fufu ghi `""` thì để trống (sẽ tự động dò qua signature `EventCamera`).
+2. **Namespace OS (Server Quốc Tế / Global)**:
+   - `OS::SetActiveOffset`: Cập nhật theo Fufu.
+   - `OS::EventCameraOffset`: Cập nhật theo Fufu (nếu có special offset).
+3. **Các mẫu quét Signature (Pattern bytes)**:
+   - `GetFrameCount`, `SetFrameCount`, `ChangeFOV`, `SetSyncCount`
+   - `EventCamera`
+   - `OpenTeam`, `OpenTeamPage`, `CheckCanEnter`
+   - `DisplayFog`
+   - `SetupPlayerProfilePage`
+   - `FindGameObject`, `FindString`, `GetActive`
+
+### Bước 3: Kiểm tra HideUI (`CUTTOOL.UnlockerIsland/HideUI/`)
+- Nếu game đổi tên Canvas hoặc đường dẫn UID:
+  - Cập nhật trong `GameStrings::ProfileUIDPath`: mặc định `/Canvas/Pages/PlayerProfilePage/GrpProfile/Right/GrpPlayerCard/UID`
+  - Cập nhật trong `GameStrings::UIDPathWatermark`: mặc định `/BetaWatermarkCanvas(Clone)/Panel/TxtUID`
+- Logic cache pointer `g_profile_uid_cached` đã được thiết kế sẵn để tự động khôi phục và ẩn lại tức thì khi config reload.
+
+### Bước 4: Kiểm tra và đồng bộ `dllmain.cpp`
+- Đảm bảo vòng lặp phím tắt và auto-reload file `config.ini` vẫn gọi `ApplyProfilePrivacyState()` sau khi `Config::Load()` để UID cập nhật ngay lập tức.
+
+### Bước 5: Biên dịch và xác thực đầu ra
+Chạy `build.bat` hoặc lệnh MSBuild chuẩn:
+```powershell
+$env:VCTargetsPath = "C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Microsoft\VC\v170\"
+& "C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Current\Bin\amd64\MSBuild.exe" `
+  "d:\GSVNUNLOCKER\CUTTOOLunlocker\Genshin.Fps.UnlockerIsland.sln" `
+  /t:Build /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /p:BuildInParallel=true /m /nologo /verbosity:minimal
+```
+
+**Kết quả thành công phải có 4 file tại `x64\Release\`:**
+1. `CUTTOOL.UnlockerIsland.dll` (DLL chính inject vào game)
+2. `Launcher.dll`
+3. `Launcher_2.exe` (Launcher khởi chạy & inject)
+4. `config.ini` (File cấu hình tính năng, luôn có dòng `File=CUTTOOL.UnlockerIsland.dll` ở đầu)
+
+`build.bat` sẽ tự động triển khai (copy) các file này sang:
+- Thư mục gốc (`Launcher_2.exe`, `CUTTOOL.UnlockerIsland.dll`)
+- Thư mục plugin: `Plugins\UnlockerIsland\CUTTOOL.UnlockerIsland.dll` và `Plugins\UnlockerIsland\config.ini`
+
+---
+
+## 5. XỬ LÝ LỖI MÔI TRƯỜNG BIÊN DỊCH (TROUBLESHOOTING)
+
+1. **Lỗi `error MSB4019: Microsoft.Cpp.Default.props was not found ... VC\v180`**:
+   - Nguyên nhân: Visual Studio Preview hoặc phiên bản 18 chưa có thư mục v180 cho C++.
+   - Khắc phục: Đặt biến môi trường `VCTargetsPath` trỏ về `v170\` như đã cấu hình sẵn trong `build.bat`:
+     `set VCTargetsPath=C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Microsoft\VC\v170\`
+
+2. **Lỗi `error MSB8020: The build tools for v145 cannot be found`**:
+   - Nguyên nhân: Dự án gốc đặt toolset `v145` nhưng máy tính chỉ có bộ công cụ v143 (VS 2022).
+   - Khắc phục: Truyền tham số `/p:PlatformToolset=v143` khi gọi MSBuild.
+
+3. **Cảnh báo `MSB8028: The intermediate directory contains files shared from another project`**:
+   - Đây chỉ là warning vô hại do intermediate directory dùng chung. Không ảnh hưởng đến chất lượng file binary đầu ra.
+
+---
+
+## 6. LƯU Ý ĐẶC BIỆT VỀ EVENTCAMERA & ĐỒNG BỘ SKIRK-MACRO
+
+### Cơ chế chống lệch Offset của EventCamera (DisableCameraMove):
+- **Vấn đề**: Khi game cập nhật (ví dụ từ 7.0 lên 7.1), các offset hardcode trong `Patterns.h` bị lệch. MinHook khi nhận offset cũ sẽ hook nhầm một hàm ngẫu nhiên nằm ở địa chỉ đó và trả về `MH_OK`, khiến hệ thống tưởng hook thành công và **bỏ qua fallback quét signature**!
+- **Giải pháp**: Trong `Core/Hooks.cpp`, trước khi hook offset phải dùng `memcmp` xác thực 8 byte prologue đầu tiên (`41 57 41 56 56 57 55 53`). Nếu không khớp -> cảnh báo offset lỗi thời và kích hoạt ngay `Scanner::ScanMainMod(Patterns::EventCamera)`.
+- **Độ tin cậy của Pattern**: Signature `Patterns::EventCamera` là **duy nhất 100%** (1 match duy nhất trên toàn bộ file game 420MB).
+- **Thông tin offset Genshin 7.1.0**:
+  - `OS::EventCameraOffset` = `73AC8E0` (7.0 cũ là `70D9930`)
+  - `OS::SetActiveOffset` = `1452EE0` (7.0 cũ là `13D8580`)
+
+### Vị trí nạp DLL trong ứng dụng Skirk-macro:
+- `Launcher_2.exe` quét đệ quy các thư mục con trong `Plugins/` để tìm `config.ini`. Khi thấy `Plugins/UnlockerIsland/config.ini`, nó sẽ nạp DLL tại:
+  `D:\GSVNUNLOCKER\Skirk-macro\build\app\CUTTOOL\resources\unlocker\Plugins\UnlockerIsland\CUTTOOL.UnlockerIsland.dll`
+  **(chứ không phải file ở thư mục gốc `resources\unlocker\`)**.
+- `build.bat` đã được cấu hình tự động triển khai sang cả:
+  - `D:\GSVNUNLOCKER\Skirk-macro\build\app\CUTTOOL\resources\unlocker\Plugins\UnlockerIsland\`
+  - `D:\GSVNUNLOCKER\Skirk-macro\src\unlocker\Plugins\UnlockerIsland\`
+  (kể cả khi game đang chạy, `build.bat` sẽ tự động xoay vòng file `.old` để ghi đè an toàn).
+- File điều khiển `src/UI/unlocker.js` đã được cập nhật logic so sánh kích thước/mtime để luôn đồng bộ DLL mới nhất vào thư mục `Plugins`.

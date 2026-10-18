@@ -9,6 +9,7 @@ std::atomic<void*> o_SetFrameCount{ nullptr };
 std::atomic<void*> o_ChangeFov{ nullptr };
 std::atomic<void*> o_EventCamera{ nullptr };
 std::atomic<void*> o_OpenTeam{ nullptr };
+std::atomic<void*> o_SetupPlayerProfilePage{ nullptr };
 std::atomic<void*> o_DisplayFog{ nullptr };
 std::atomic<void*> o_SetActive{ nullptr };
 std::atomic<void*> p_CheckCanEnter{ nullptr };

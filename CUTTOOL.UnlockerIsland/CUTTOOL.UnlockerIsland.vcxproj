@@ -19,7 +19,7 @@
         </ProjectConfiguration>
     </ItemGroup>
     <PropertyGroup Label="Globals">
-        <VCProjectVersion>18.0</VCProjectVersion>
+        <VCProjectVersion>17.0</VCProjectVersion>
         <Keyword>Win32Proj</Keyword>
         <ProjectGuid>{a307ace7-c608-43d7-b072-9a4c42723655}</ProjectGuid>
         <RootNamespace>CUTTOOLUnlockerIsland</RootNamespace>

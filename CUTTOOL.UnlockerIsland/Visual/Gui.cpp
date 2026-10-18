@@ -71,7 +71,10 @@ namespace Gui {
             builder.AddRanges(io.Fonts->GetGlyphRangesChineseFull());
             builder.BuildRanges(&ranges);
 
-            io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyhbd.ttc", 20.0f, NULL, ranges.Data);
+            ImFont* font = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyhbd.ttc", 20.0f, NULL, ranges.Data);
+            if (!font) {
+                io.Fonts->AddFontDefault();
+            }
             io.Fonts->Build();
 
             ImGui::StyleColorsDark();
@@ -87,7 +90,7 @@ namespace Gui {
         if (!g_ImGuiInitialized)
             InitImGui(pSwapChain);
 
-        if (Config::Get().show_fps) {
+        if (Config::Get().show_fps && g_mainRTV && g_pd3dContext) {
             ImGui_ImplDX11_NewFrame();
             ImGui_ImplWin32_NewFrame();
             ImGui::NewFrame();
@@ -97,8 +100,10 @@ namespace Gui {
 
             ImDrawList* draw_list = ImGui::GetForegroundDrawList();
             ImVec2 text_size = ImGui::CalcTextSize(buffer);
-            ImVec2 pos = ImVec2(5.f, 5.f); // TopLeft
+            ImVec2 pos = ImVec2(8.f, 8.f); // TopLeft with slight padding
             
+            // Text shadow (black outline) for high readability against sky/snow
+            draw_list->AddText(ImVec2(pos.x + 1, pos.y + 1), IM_COL32(0, 0, 0, 255), buffer);
             draw_list->AddText(pos, IM_COL32_WHITE, buffer);
 
             ImGui::Render();
@@ -106,7 +111,7 @@ namespace Gui {
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
         }
 
-        return oPresent(pSwapChain, sync, flags);
+        return oPresent ? oPresent(pSwapChain, sync, flags) : S_OK;
     }
 
     HRESULT __stdcall HookedResizeBuffers(IDXGISwapChain* pSwapChain,

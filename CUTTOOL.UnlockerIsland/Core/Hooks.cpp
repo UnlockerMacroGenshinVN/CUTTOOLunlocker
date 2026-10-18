@@ -86,6 +86,10 @@ int32_t WINAPI hk_GetFrameCount() {
 
     UpdateHideUID();
 
+    if (ret >= 60) return 60;
+    if (ret >= 45) return 45;
+    if (ret >= 30) return 30;
+
     return ret;
 }
 
@@ -159,13 +163,29 @@ bool Hooks::Init() {
     void* eventCameraAddr = nullptr;
     uintptr_t offsetEventCam = StringToAddr(Offsets::EventCameraOffset);
     if (offsetEventCam > 0) {
-        eventCameraAddr = (void*)((uintptr_t)GetModuleHandle(NULL) + offsetEventCam);
-        std::cout << "[SCAN] EventCamera resolved via explicit offset: 0x" << std::hex << offsetEventCam << std::dec << '\n';
-    } else {
+        void* candidate = (void*)((uintptr_t)GetModuleHandle(NULL) + offsetEventCam);
+        MEMORY_BASIC_INFORMATION mbi;
+        if (VirtualQuery(candidate, &mbi, sizeof(mbi)) && (mbi.State == MEM_COMMIT)) {
+            // Verify candidate begins with EventCamera signature prologue (first 8 bytes)
+            // 41 57 41 56 56 57 55 53 (push r15, push r14, push rsi, push rdi, push rbp, push rbx)
+            static const uint8_t kExpectedPrologue[] = { 0x41, 0x57, 0x41, 0x56, 0x56, 0x57, 0x55, 0x53 };
+            if (memcmp(candidate, kExpectedPrologue, sizeof(kExpectedPrologue)) == 0) {
+                eventCameraAddr = candidate;
+                std::cout << "[SCAN] EventCamera resolved via explicit offset: 0x" << std::hex << offsetEventCam << std::dec << '\n';
+            } else {
+                std::cout << "[WARN] EventCamera offset 0x" << std::hex << offsetEventCam << std::dec 
+                          << " prologue mismatch (likely stale offset). Falling back to signature scan...\n";
+            }
+        }
+    }
+
+    if (!eventCameraAddr) {
         void* scanRes = Scanner::ScanMainMod(Patterns::EventCamera);
         if (scanRes) {
             eventCameraAddr = scanRes;
             std::cout << "[SCAN] EventCamera resolved via signature fallback.\n";
+        } else {
+            std::cout << "   -> [ERR] EventCamera not found.\n";
         }
     }
 
@@ -176,11 +196,10 @@ bool Hooks::Init() {
         } else {
             std::cout << "   -> [ERR] EventCamera Hook Failed.\n";
         }
-    } else {
-        std::cout << "   -> [ERR] EventCamera not found.\n";
     }
 
     // HideUID
+    HOOK_DIR("SetupPlayerProfilePage", Patterns::SetupPlayerProfilePage, hk_SetupPlayerProfilePage, o_SetupPlayerProfilePage);
     SCAN_DIR("FindGameObject", Patterns::FindGameObject, p_FindGameObject);
     SCAN_DIR("FindString", Patterns::FindString, p_FindString);
     SCAN_DIR("GetActive", Patterns::GetActive, p_GetActive);
